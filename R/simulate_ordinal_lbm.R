@@ -36,6 +36,31 @@
 # recommence. Sinon le bloc correspondant n'aurait aucune observation et on ne pourrait
 # pas le retrouver. On tire donc "conditionnellement à n'avoir aucun groupe vide".
 
+
+#' Simuler un tableau de notes ordinales selon le modèle à blocs latents
+#'
+#' Tire les groupes de lignes et de colonnes, puis une note par case selon la loi CUB
+#' du bloc correspondant. Sert aux exemples, aux tests et à la vignette : on connaît la
+#' vérité, donc on peut vérifier que \code{\link{ordinal_coclust}} la retrouve.
+#'
+#' @param n nombre de lignes.
+#' @param d nombre de colonnes.
+#' @param m nombre de modalités (prendre m >= 4).
+#' @param alpha proportions des groupes de lignes (somme = 1).
+#' @param beta proportions des groupes de colonnes (somme = 1).
+#' @param xi,pi matrices K x L des paramètres CUB de chaque bloc.
+#'
+#' @return Une liste : \code{X} (le tableau), \code{row_class} et \code{col_class} (vrais
+#'   groupes), \code{alpha}, \code{beta}, \code{xi}, \code{pi} (vrais paramètres).
+#'
+#' @examples
+#' xi <- matrix(c(0.8, 0.2, 0.2, 0.8), nrow = 2)
+#' pi <- matrix(0.9, nrow = 2, ncol = 2)
+#' sim <- simulate_ordinal_lbm(20, 15, 5, c(.5, .5), c(.5, .5), xi, pi)
+#' dim(sim$X)
+#'
+#' @export
+
 simulate_ordinal_lbm <- function(n, d, m, alpha, beta, xi, pi){
   
   K <- length(alpha)    # nombre de groupes de lignes : il y a un alpha[k] par groupe

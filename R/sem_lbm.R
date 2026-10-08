@@ -43,7 +43,7 @@ sem_lbm <- function(
 ) {
   
   if (burn_in >= max_iter) {
-    stop("burn_in doit être strictement inférieur à max_iter.")
+    stop("burn_in doit \u00eatre strictement inf\u00e9rieur \u00e0 max_iter.")
   }
   
   # Initialisation : partition de départ

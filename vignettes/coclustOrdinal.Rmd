@@ -1,0 +1,169 @@
+---
+title: "coclustOrdinal : mode d'emploi"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{coclustOrdinal : mode d'emploi}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 6, fig.height = 3.2)
+```
+
+## 1. À quoi sert ce package ?
+
+`coclustOrdinal` regroupe **en même temps les lignes et les colonnes** d'un tableau de notes
+ordinales (par exemple des utilisateurs qui notent des films de 1 à 5). Les lignes
+semblables sont réunies en groupes, les colonnes semblables aussi, et chaque « bloc »
+(un groupe de lignes croisé avec un groupe de colonnes) a son propre comportement de notation.
+
+### Le modèle
+
+C'est un **modèle à blocs latents** (LBM) avec `K` groupes de lignes et `L` groupes de colonnes :
+
+- chaque ligne appartient au groupe `k` avec la probabilité `alpha[k]` ;
+- chaque colonne appartient au groupe `l` avec la probabilité `beta[l]` ;
+- sachant les groupes, la note d'une case ne dépend que de son bloc `(k, l)` et suit une
+  **loi CUB** de paramètres `xi[k, l]` et `pi[k, l]`.
+
+La loi CUB mélange deux comportements : un « feeling » (une loi binomiale décalée) avec le
+poids `pi`, et un « hasard » (uniforme) avec le poids `1 - pi` :
+
+```
+P(X = x) = pi * choose(m-1, x-1) * (1-xi)^(x-1) * xi^(m-x) + (1 - pi) / m
+```
+
+Le paramètre `xi` donne le niveau des notes : **`xi` grand → notes plutôt basses,
+`xi` petit → notes plutôt hautes**.
+
+### L'estimation
+
+Les paramètres sont estimés par un algorithme **SEM-Gibbs** : à chaque itération, on tire
+au hasard les groupes des lignes puis des colonnes (échantillonneur de Gibbs), puis on
+re-estime les paramètres de chaque bloc. Après une période de chauffe (*burn-in*), on
+fait la moyenne des paramètres. La partition finale est ensuite obtenue en fixant ces
+paramètres. Comme le résultat dépend du point de départ, l'algorithme est lancé plusieurs
+fois (`n_init`, 20 par défaut) et la meilleure solution est gardée, au sens du critère
+**ICL** (plus il est grand, meilleur est le modèle).
+
+## 2. Installation
+
+```{r install, eval = FALSE}
+install.packages("coclustOrdinal_0.1.0.tar.gz", repos = NULL, type = "source")
+```
+
+```{r library}
+library(coclustOrdinal)
+```
+
+## 3. Un exemple sur des données simulées
+
+On fabrique un tableau de 40 lignes et 30 colonnes, avec 2 x 2 groupes et des notes
+de 1 à 5. Comme on connaît la vérité, on pourra vérifier que le package la retrouve.
+
+```{r simulation}
+xi_vrai <- matrix(c(0.8, 0.2,
+                    0.2, 0.8), nrow = 2)       # niveau des notes dans chaque bloc
+pi_vrai <- matrix(0.9, nrow = 2, ncol = 2)      # poids du « feeling » dans chaque bloc
+
+set.seed(42)
+sim <- simulate_ordinal_lbm(n = 40, d = 30, m = 5,
+                            alpha = c(0.5, 0.5), beta = c(0.5, 0.5),
+                            xi = xi_vrai, pi = pi_vrai)
+dim(sim$X)
+sim$X[1:5, 1:8]
+```
+
+## 4. Lancer le co-clustering
+
+```{r coclust}
+res <- ordinal_coclust(sim$X, K = 2, L = 2, n_init = 5)
+names(res)
+```
+
+La fonction demande le tableau `X`, le nombre de groupes de lignes `K` et de colonnes `L`.
+Les autres réglages ont une valeur par défaut : `n_init = 20` initialisations,
+`max_iter = 100` itérations du SEM, `burn_in = 20` itérations de chauffe.
+
+### Lire les résultats
+
+```{r sorties}
+res$ICL                          # critère ICL de la meilleure initialisation
+table(res$row_class)             # taille des groupes de lignes
+table(res$col_class)             # taille des groupes de colonnes
+round(head(res$row_prob), 2)     # probabilités d'appartenance des 6 premières lignes
+round(res$parameters$xi, 2)      # paramètre xi de chaque bloc
+round(res$parameters$pi, 2)      # paramètre pi de chaque bloc
+round(res$parameters$alpha, 2)   # proportions des groupes de lignes
+round(res$parameters$beta, 2)    # proportions des groupes de colonnes
+```
+
+- `row_class` et `col_class` donnent le groupe le plus probable de chaque ligne et colonne.
+- `row_prob` et `col_prob` donnent les probabilités d'appartenance (chaque ligne de la
+  matrice somme à 1). Une valeur proche de 1 signifie que l'affectation est sûre.
+- `parameters` contient les paramètres estimés du modèle.
+
+Le tableau est plus lisible une fois les lignes et colonnes triées par groupe :
+
+```{r image}
+gris <- gray.colors(5, start = 0.95, end = 0.1)   # clair = note 1, foncé = note 5
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+image(t(sim$X[nrow(sim$X):1, ]), col = gris, axes = FALSE, main = "Données brutes")
+Xtri <- sim$X[order(res$row_class), order(res$col_class)]
+image(t(Xtri[nrow(Xtri):1, ]), col = gris, axes = FALSE, main = "Triées par groupe")
+par(op)
+```
+
+## 5. Comparer à la vérité
+
+Les numéros de groupes sont arbitraires : le « groupe 1 » estimé peut être le « groupe 2 »
+vrai (on parle de *label switching*). Il faut donc comparer **au renommage près**.
+
+```{r verite}
+table(estime = res$row_class, vrai = sim$row_class)
+table(estime = res$col_class, vrai = sim$col_class)
+```
+
+Un tableau dont les gros nombres sont sur une diagonale (ou sur l'autre) signifie que
+les groupes sont retrouvés. Les paramètres estimés (`xi` proche de 0.8 et 0.2, `pi` proche
+de 0.9) sont, eux aussi, proches des vrais, aux numéros de groupes près.
+
+## 6. Choisir le nombre de groupes avec l'ICL
+
+En pratique, on ne connaît pas `K` ni `L`. On essaie plusieurs valeurs et on garde celles
+qui donnent le **plus grand ICL**. Sa pénalité empêche de choisir un modèle inutilement
+compliqué.
+
+```{r grille}
+grille <- expand.grid(K = 1:3, L = 1:3)
+grille$ICL <- NA
+for (i in seq_len(nrow(grille))) {
+  r <- suppressWarnings(ordinal_coclust(sim$X, K = grille$K[i], L = grille$L[i],
+                                        n_init = 3, max_iter = 50, burn_in = 10))
+  grille$ICL[i] <- round(r$ICL, 1)
+}
+knitr::kable(grille[order(-grille$ICL), ], row.names = FALSE)
+```
+
+Le meilleur modèle est celui de la première ligne : ici `K = 2` et `L = 2`,
+exactement la structure utilisée pour fabriquer les données.
+
+## 7. Bon à savoir
+
+- **Les données** doivent être une matrice (ou un `data.frame`) de nombres entiers entre 1
+  et `m`, sans valeur manquante. Par défaut, `m` est la plus grande note observée ; on peut
+  le préciser avec `m = 5`.
+- **Les avertissements** : si une initialisation échoue, elle est sautée et un avertissement
+  l'indique. Si tous les essais finissent avec un groupe vide, c'est que `K` ou `L` est
+  sans doute trop grand pour ces données.
+- **Reproductibilité** : l'algorithme est aléatoire. Pour obtenir deux fois le même résultat,
+  fixer la graine avec `set.seed()` avant l'appel.
+- **Temps de calcul** : il croît avec la taille du tableau, le nombre de groupes, `max_iter`
+  et `n_init`. Pour des essais rapides, réduire `n_init` et `max_iter`.
+
+## 8. Références
+
+- Cours de co-clustering et classification à base de modèles (MBCC), parties 1 à 3 : modèle
+  à blocs latents, algorithme SEM-Gibbs, critère ICL.
+- Package R `ordinalClust` (Selosse, Jacques, Biernacki), cité dans le cours.

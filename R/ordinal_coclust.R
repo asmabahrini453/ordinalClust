@@ -43,6 +43,53 @@
 #     c'est ce qui permet de comparer plusieurs valeurs de K et L.
 #   On ne s'arrête avec une erreur que si TOUS les runs ont planté.
 
+
+#' Co-clustering de données ordinales (modèle à blocs latents et loi CUB)
+#'
+#' Regroupe simultanément les lignes et les colonnes d'un tableau de notes ordinales.
+#' Dans chaque bloc (groupe de lignes, groupe de colonnes), les notes suivent une loi CUB.
+#' Les paramètres sont estimés par un algorithme SEM-Gibbs lancé à partir de plusieurs
+#' partitions aléatoires ; on garde la solution qui a le plus grand critère ICL.
+#'
+#' @param X matrice (ou data.frame) n x d de notes entières entre 1 et m, sans valeur manquante.
+#' @param K nombre de groupes de lignes.
+#' @param L nombre de groupes de colonnes.
+#' @param n_init nombre d'initialisations aléatoires (20 par défaut).
+#' @param max_iter nombre d'itérations du SEM-Gibbs (100 par défaut).
+#' @param burn_in nombre d'itérations de chauffe, ignorées dans la moyenne des paramètres
+#'   (20 par défaut ; doit être strictement inférieur à \code{max_iter}).
+#' @param m nombre de modalités. Par défaut, la plus grande note observée dans \code{X}.
+#'
+#' @return Une liste avec :
+#' \describe{
+#'   \item{row_prob}{matrice n x K des probabilités d'appartenance des lignes aux groupes.}
+#'   \item{col_prob}{matrice d x L des probabilités d'appartenance des colonnes aux groupes.}
+#'   \item{row_class}{groupe de chaque ligne (le plus probable).}
+#'   \item{col_class}{groupe de chaque colonne (le plus probable).}
+#'   \item{parameters}{liste des paramètres estimés : \code{alpha} et \code{beta}
+#'     (proportions des groupes), \code{xi} et \code{pi} (matrices K x L des paramètres CUB).}
+#'   \item{ICL}{valeur du critère ICL de la meilleure initialisation (plus grand = meilleur).}
+#'   \item{K, L}{nombres de groupes demandés.}
+#'   \item{iterations}{nombre d'itérations du SEM.}
+#'   \item{best_init}{numéro de l'initialisation retenue.}
+#' }
+#'
+#' @details Les numéros de groupes sont arbitraires (\emph{label switching}) : le groupe 1
+#'   d'un résultat peut correspondre au groupe 2 d'un autre. Un avertissement est émis si des
+#'   initialisations ont échoué, ou si tous les essais ont un groupe vide (K ou L trop grand).
+#'
+#' @examples
+#' xi <- matrix(c(0.8, 0.2, 0.2, 0.8), nrow = 2)
+#' pi <- matrix(0.9, nrow = 2, ncol = 2)
+#' set.seed(1)
+#' sim <- simulate_ordinal_lbm(n = 40, d = 30, m = 5, alpha = c(.5, .5),
+#'                             beta = c(.5, .5), xi = xi, pi = pi)
+#' res <- ordinal_coclust(sim$X, K = 2, L = 2, n_init = 3, max_iter = 40, burn_in = 10)
+#' res$ICL
+#' table(res$row_class, sim$row_class)
+#'
+#' @export
+
 ordinal_coclust <- function(X, K, L, n_init = 20, max_iter = 100, burn_in = 20, m = NULL) {
   
   # ---------- vérification des entrées ----------
@@ -56,17 +103,17 @@ ordinal_coclust <- function(X, K, L, n_init = 20, max_iter = 100, burn_in = 20, 
     stop("X ne doit pas contenir de valeurs manquantes (NA).")
   }
   if (any(X != round(X)) || any(X < 1)) {
-    stop("X doit contenir des entiers supérieurs ou égaux à 1.")
+    stop("X doit contenir des entiers sup\u00e9rieurs ou \u00e9gaux \u00e0 1.")
   }
   
   if (is.null(m)) {
     m <- max(X)                          # par défaut : plus grande note observée
   }
   if (m < 2 || m != round(m)) {
-    stop("m doit être un entier supérieur ou égal à 2.")
+    stop("m doit \u00eatre un entier sup\u00e9rieur ou \u00e9gal \u00e0 2.")
   }
   if (max(X) > m) {
-    stop("X contient des notes supérieures à m.")
+    stop("X contient des notes sup\u00e9rieures \u00e0 m.")
   }
   
   n <- nrow(X)
@@ -79,19 +126,19 @@ ordinal_coclust <- function(X, K, L, n_init = 20, max_iter = 100, burn_in = 20, 
   }
   
   if (!entier_valide(K, 1, n)) {
-    stop("K doit être un entier entre 1 et le nombre de lignes de X.")
+    stop("K doit \u00eatre un entier entre 1 et le nombre de lignes de X.")
   }
   if (!entier_valide(L, 1, d)) {
-    stop("L doit être un entier entre 1 et le nombre de colonnes de X.")
+    stop("L doit \u00eatre un entier entre 1 et le nombre de colonnes de X.")
   }
   if (!entier_valide(n_init, 1, Inf)) {
-    stop("n_init doit être un entier supérieur ou égal à 1.")
+    stop("n_init doit \u00eatre un entier sup\u00e9rieur ou \u00e9gal \u00e0 1.")
   }
   if (!entier_valide(max_iter, 1, Inf)) {
-    stop("max_iter doit être un entier supérieur ou égal à 1.")
+    stop("max_iter doit \u00eatre un entier sup\u00e9rieur ou \u00e9gal \u00e0 1.")
   }
   if (!entier_valide(burn_in, 0, max_iter - 1)) {
-    stop("burn_in doit être un entier entre 0 et max_iter - 1.")
+    stop("burn_in doit \u00eatre un entier entre 0 et max_iter - 1.")
   }
   
   # ---------- n_init essais, on garde le meilleur ----------
@@ -173,17 +220,17 @@ ordinal_coclust <- function(X, K, L, n_init = 20, max_iter = 100, burn_in = 20, 
   # ---------- bilan ----------
   
   if (is.null(best)) {
-    stop("Aucune initialisation n'a abouti (dernière raison : ", derniere_raison, ").")
+    stop("Aucune initialisation n'a abouti (derni\u00e8re raison : ", derniere_raison, ").")
   }
   
   if (n_echecs > 0) {
     warning(n_echecs, " initialisation(s) sur ", n_init,
-            " écartée(s) (dernière raison : ", derniere_raison, ").")
+            " \u00e9cart\u00e9e(s) (derni\u00e8re raison : ", derniere_raison, ").")
   }
   
   if (!best$complet) {
     warning("Tous les essais ont au moins un groupe vide dans la partition finale : ",
-            "K ou L est sans doute trop grand pour ces données.")
+            "K ou L est sans doute trop grand pour ces donn\u00e9es.")
   }
   
   return(

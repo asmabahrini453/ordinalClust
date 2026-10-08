@@ -38,6 +38,8 @@
 
 ##########################################################################################""
 
+#' @importFrom stats dbinom 
+
 cub_em <- function(x, m, max_iter = 100, tol = 1e-6){
   
   # le Cas limite : bloc vide. On renvoie des valeurs neutres, sans converger.
