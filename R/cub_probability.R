@@ -11,7 +11,7 @@
 #   - PRÉCAUTION : pi est un ARGUMENT, jamais la constante 3.14159 de R
 #     -> vérifier pi dans (0, 1] et xi dans [0, 1], sinon erreur
 # UTILISÉE PAR : cub_em.R, gibbs.R, compute_icl.R, simulate_ordinal_lbm.R
-# ----------------------------------------------------------------------
+##########################################################################################""
 
 
 # CE QU'ON FAIT ICI (explication pour l'oral)
