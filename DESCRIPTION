@@ -1,9 +1,9 @@
-Package: cubcoclust
+Package: coclustOrdinal
 Type: Package
 Title: Co-clustering de données ordinales par modèle à blocs latents et lois CUB
 Version: 0.1.0
 Authors@R: c(
-    person("Martine", "Martine Ouedraogo", email = "marteoued11@gmail.com", role = c("aut", "cre")),
+    person("Martine", "Ouedraogo", email = "marteoued11@gmail.com", role = c("aut", "cre")),
     person("Asma", "Bahrini", email = "EMAIL_ASMA", role = "aut"))
 Description: Co-clustering de données ordinales avec un modèle à blocs latents
     dans lequel les notes de chaque bloc suivent une loi CUB. Les paramètres sont
