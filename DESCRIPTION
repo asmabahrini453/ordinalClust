@@ -1,17 +1,22 @@
 Package: cubcoclust
 Type: Package
-Title: Co-Clustering of Ordinal Data with a Latent Block Model and CUB Distributions
+Title: Co-clustering de données ordinales par modèle à blocs latents et lois CUB
 Version: 0.1.0
-Author: Prénom NOM, Prénom NOM
-Maintainer: Prénom NOM <adresse@univ-lyon2.fr>
-Description: Co-clustering of ordinal data with a latent block model in which the
-    ratings of each block follow a CUB distribution. Parameters are estimated by
-    a SEM-Gibbs algorithm and the numbers of row and column clusters are
-    compared with the ICL criterion.
+Authors@R: c(
+    person("Martine", "Martine Ouedraogo", email = "marteoued11@gmail.com", role = c("aut", "cre")),
+    person("Asma", "Bahrini", email = "EMAIL_ASMA", role = "aut"))
+Description: Co-clustering de données ordinales avec un modèle à blocs latents
+    dans lequel les notes de chaque bloc suivent une loi CUB. Les paramètres sont
+    estimés par un algorithme SEM-Gibbs lancé à partir de plusieurs partitions
+    aléatoires, et les nombres de groupes de lignes et de colonnes sont comparés
+    avec le critère ICL. Le package fournit aussi un simulateur de données
+    ordinales selon le modèle.
 License: GPL (>= 2)
 Encoding: UTF-8
+Language: fr
 Depends: R (>= 3.5.0)
 Imports: stats
-Suggests: knitr, rmarkdown, testthat (>= 3.0.0)
+Suggests: knitr, rmarkdown, testthat (>= 3.2.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0
