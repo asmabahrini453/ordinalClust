@@ -1,41 +1,63 @@
 # FICHIER : compute_icl.R
-# RÔLE : calculer le critère ICL d'un co-clustering (pour choisir K et L : plus l'ICL est grand,
-#        meilleur est le modèle).
-# COURS : partie 3 p37 (ICL du LBM : vraisemblance complète moins une pénalité) ;
-#         partie 3 p29-31 (hypothèses 1 et 2 : de quoi est faite la vraisemblance complète) ;
-#         partie 2 p58 (loi CUB).
+#
+# RÔLE : calculer le critère ICL d'un modèle de co-clustering ordinal.
+#        L'ICL combine la log-vraisemblance complète, calculée à partir
+#        des groupes estimés des lignes et des colonnes, et une pénalité
+#        qui tient compte de la complexité du modèle.
+#
+# COURS : partie 3 p29-31 (vraisemblance complète du LBM : hypothèses 1 et 2) ;
+#         partie 3 p37 (ICL : vraisemblance complète moins pénalité) ;
+#         partie 2 p58 (loi CUB utilisée dans chaque bloc).
+#
 # FONCTION : compute_icl(X, row_class, col_class, alpha, beta, xi, pi, K, L, m)
-#   X : matrice n x d des données ordinales       row_class, col_class : partitions finales
-#   alpha, beta : proportions estimées des K groupes de lignes et des L groupes de colonnes
-#   xi, pi : matrices K x L des paramètres CUB estimés      K, L, m : nombres de groupes et de modalités
-#   sortie : ICL, un seul nombre
+#   X : matrice n x d des données ordinales
+#   row_class : partition des n lignes, donnant le groupe de chaque ligne
+#   col_class : partition des d colonnes, donnant le groupe de chaque colonne
+#   alpha : proportions des K groupes de lignes
+#   beta : proportions des L groupes de colonnes
+#   xi, pi : paramètres de la loi CUB pour chacun des K x L blocs
+#   K, L : nombres de groupes de lignes et de colonnes
+#   m : nombre de modalités ordinales
+#   sortie : valeur du critère ICL
+#
 # À RETENIR :
-#   - n <- nrow(X) et d <- ncol(X) se récupèrent dans la fonction
-#   - ICL = ln p(x, v, w ; theta) - (K-1)/2 log n - (L-1)/2 log d - K L nu/2 log(n d), avec nu = 2 pour la CUB
-#   - ln p(x, v, w ; theta) est la log-vraisemblance COMPLÈTE : elle utilise les groupes (row_class, col_class)
-#   - on veut le plus grand ICL (et non le plus petit comme pour d'autres critères)
-# UTILISÉE PAR : ordinal_coclust.R (pour comparer les n_init essais et les couples (K, L))
-
-#################################
-# CE QU'ON FAIT ICI 
-# Le problème : la vraisemblance observée du LBM est impossible à calculer (il faudrait sommer
-# sur les K^n x L^d partitions possibles), donc BIC aussi. Mais la vraisemblance COMPLÈTE,
-# celle où l'on connaît les groupes, se calcule facilement. On l'évalue avec les groupes
-# estimés (v, w) : c'est le principe de l'ICL.
+#   - n <- nrow(X) et d <- ncol(X)
 #
-# Vraisemblance complète (hypothèses 1 et 2 du LBM, partie 3 p29-31) :
-#   p(x, v, w ; theta) = [produit sur les lignes de alpha_{v_i}] x [produit sur les colonnes de beta_{w_j}]
-#                        x [produit sur les cases de la loi CUB du bloc (v_i, w_j)]
-# donc, en passant au logarithme :
-#   ln p = somme_k n_k ln(alpha_k) + somme_l d_l ln(beta_l)
-#          + somme_{blocs (k,l)} somme_{observations du bloc} ln P(x | xi_kl, pi_kl)
-#   avec n_k = nombre de lignes du groupe k et d_l = nombre de colonnes du groupe l.
+#   - La vraisemblance complète du LBM est :
+#       p(x, v, w ; theta) =
+#         [produit_i alpha_{v_i}]
+#         [produit_j beta_{w_j}]
+#         [produit_{i,j} P(x_ij | xi_{v_i,w_j}, pi_{v_i,w_j})]
 #
-# La pénalité (partie 3 p37) punit les modèles trop compliqués :
-#   (K-1)/2 log n      : K - 1 proportions alpha libres, estimées avec n lignes
-#   (L-1)/2 log d      : L - 1 proportions beta libres, estimées avec d colonnes
-#   K L nu/2 log(n d)  : K x L blocs, nu paramètres par bloc (nu = 2 : xi et pi), estimés avec n x d cases
-# Sans pénalité, plus de groupes donnerait toujours une meilleure vraisemblance.
+#   - Son logarithme est donc :
+#       ln p(x, v, w ; theta) =
+#         somme_k n_k ln(alpha_k)
+#         + somme_l d_l ln(beta_l)
+#         + somme_{k,l} somme_{i,j dans le bloc (k,l)}
+#           ln P(x_ij | xi_kl, pi_kl)
+#
+#   - L'ICL est obtenu en retirant à cette log-vraisemblance une pénalité :
+#       ICL = ln p(x, v, w ; theta)
+#             - (K-1)/2 log(n)
+#             - (L-1)/2 log(d)
+#             - K L nu/2 log(n d)
+#
+#   - Les trois termes de pénalité correspondent respectivement :
+#       (K-1) paramètres pour les proportions alpha des lignes ;
+#       (L-1) paramètres pour les proportions beta des colonnes ;
+#       K x L blocs contenant nu paramètres chacun.
+#
+#   - Pour la loi CUB, nu = 2 car chaque bloc possède deux paramètres :
+#     xi et pi.
+#
+#   - Le meilleur modèle est celui qui maximise l'ICL :
+#     une grande vraisemblance complète est recherchée, tout en pénalisant
+#     les modèles trop complexes avec trop de groupes.
+#
+# UTILISÉE PAR : ordinal_coclust.R
+#                pour comparer les différentes initialisations et les
+#                différents couples (K, L), puis retenir le modèle
+#                ayant le plus grand ICL.
 ###########################################################
 
 compute_icl <- function(X, row_class, col_class, alpha, beta, xi, pi, K, L, m){

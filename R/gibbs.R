@@ -46,9 +46,7 @@
 #   4) on fait pareil pour les colonnes, avec les NOUVELLES classes de lignes
 
 
-# ------------------------------------------------------------------------------------------
 # gibbs_row : tire la classe de chaque ligne, les colonnes étant fixées
-# ------------------------------------------------------------------------------------------
 gibbs_row <- function(X, col_class, alpha, xi, pi, K, m) {
   
   n <- nrow(X)
