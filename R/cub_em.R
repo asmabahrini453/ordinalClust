@@ -1,4 +1,4 @@
-# FICHIER : cub_em.R                 RESPONSABLE (proposition) : la binôme
+# FICHIER : cub_em.R             
 # RÔLE : estimer xi et pi à partir des notes d'un seul bloc (petit EM à deux composantes).
 # COURS : partie 2 p58 (la CUB est un mélange estimé par EM) ; partie 1 p47-49 (étapes E puis M) ;
 #         démonstration 3 de la feuille de démonstrations.
