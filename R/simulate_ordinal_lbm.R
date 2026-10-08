@@ -14,7 +14,7 @@
 #   - tirer chaque observation dans cub_probability(1:m, m, xi[k, l], pi[k, l]) (hypothèse 2)
 #   - prendre m >= 4 (avec m = 3 la CUB s'identifie mal, à vérifier avec le prof)
 #   - aucun groupe vide
-~###########################################################################################
+###########################################################################################
 # CE QU'ON FAIT ICI 
 # C'est le LBM lu "à l'envers" : au lieu d'estimer les groupes à partir des données,
 # on choisit les groupes et les paramètres, puis on fabrique les données. On sait donc
