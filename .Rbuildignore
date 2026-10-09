@@ -1,6 +1,7 @@
-^README\.md$
-^data-raw$
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^README\.md$
+^data-raw$
+^\.RData$
+^\.Rhistory$
 ^\.gitignore$
-^dev$

@@ -18,6 +18,8 @@
 # UTILISÉE PAR : cub_em.R, gibbs.R, compute_icl.R, simulate_ordinal_lbm.R
 #########################################################################################
 
+#' @importFrom stats dbinom
+
 cub_probability <- function(x, m, xi, pi){
   
   if (m < 2 || m != round(m)) stop("m doit etre un entier >= 2")

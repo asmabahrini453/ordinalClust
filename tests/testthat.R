@@ -3,6 +3,6 @@
 #        fichiers de tests/testthat/ (c'est ce que fait R CMD check). On n'y touche plus.
 
 library(testthat)
-library(cubcoclust)
+library(coclustOrdinal)
 
-test_check("cubcoclust")
+test_check("coclustOrdinal")
