@@ -5,3 +5,4 @@
 ^\.RData$
 ^\.Rhistory$
 ^\.gitignore$
+^dev$
